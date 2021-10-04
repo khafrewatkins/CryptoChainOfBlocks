@@ -31,7 +31,7 @@ export PEER=True && python -m backend.app
 '''
 
 **Run the frontend**
-
+'''
 In the frontend directory:
 '''
 npm run start
