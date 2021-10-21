@@ -3,7 +3,8 @@ import requests
 import random
 
 from flask import Flask, jsonify, request
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
+from flask.helpers import send_from_directory
 
 from backend.blockchain.blockchain import Blockchain
 from backend.wallet.wallet import Wallet
@@ -11,22 +12,29 @@ from backend.wallet.transaction import Transaction
 from backend.wallet.transaction_pool import TransactionPool
 from backend.pubsub import PubSub
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='frontend/build', static_url_path='')
 CORS(app, resources={ r'/*': { 'origins': 'http://localhost:3000' } })
+
 blockchain = Blockchain()
 wallet = Wallet(blockchain)
 transaction_pool = TransactionPool()
 pubsub = PubSub(blockchain, transaction_pool)
 
 @app.route('/')
-def route_default():
-    return 'Welcome to the blockchain'
+@cross_origin()
+def serve():
+    return send_from_directory(app.static_folder, 'index.html')
+
+# def route_default():
+#     return 'Welcome to the blockchain'
 
 @app.route('/blockchain')
+@cross_origin()
 def route_blockchain():
     return jsonify(blockchain.to_json())
 
 @app.route('/blockchain/range')
+@cross_origin()
 def route_blockchain_range():
     
     # http://localhost:5000/blockchain/range?start=2&end=5
@@ -36,10 +44,12 @@ def route_blockchain_range():
     return jsonify(blockchain.to_json()[::-1][start:end])
 
 @app.route('/blockchain/length')
+@cross_origin()
 def route_blockchain_length():
     return jsonify(len(blockchain.chain))
 
 @app.route('/blockchain/mine')
+@cross_origin()
 def route_blockchain_mine():
     transaction_data = transaction_pool.transaction_data()
     transaction_data.append(Transaction.reward_transaction(wallet).to_json())
@@ -51,6 +61,7 @@ def route_blockchain_mine():
     return jsonify(block.to_json())
 
 @app.route('/wallet/transact', methods=['POST'])
+@cross_origin()
 def route_wallet_transact():
     transaction_data = request.get_json()
     transaction = transaction_pool.existing_transaction(wallet.address)
@@ -73,10 +84,12 @@ def route_wallet_transact():
     return jsonify(transaction.to_json())
 
 @app.route('/wallet/info')
+@cross_origin()
 def route_wallet_info():
     return jsonify({ 'address': wallet.address, 'balance': wallet.balance })
 
 @app.route('/known-addresses')
+@cross_origin()
 def route_known_addresses():
     known_addresses = set()
 
@@ -87,6 +100,7 @@ def route_known_addresses():
     return jsonify(list(known_addresses))
 
 @app.route('/transactions')
+@cross_origin()
 def route_transactions():
     return jsonify(transaction_pool.transaction_data())
 
